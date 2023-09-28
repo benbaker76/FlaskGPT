@@ -1,0 +1,8 @@
+openai
+langchain
+sentence_transformers
+torch
+llama-cpp-python
+flask
+chromadb
+jq

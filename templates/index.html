@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FlaskGPT</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.svg') }}">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.0/dist/js.cookie.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.2/font/bootstrap-icons.css" integrity="sha384-b6lVK+yci+bfDmaY1u0zE8YYJt0TZxLEAFyYSLHId4xoVvsrQu3INevFKo+Xir8e" crossorigin="anonymous">
+    <style>
+        .human {
+            color: green;
+            width: 90%;
+            float: left;
+        }
+
+        .robot {
+            color: red;
+            width: 90%;
+            float: right;
+        }
+
+        .output-container {
+            height: calc(100vh - 250px);
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
+
+        .input-container {
+            margin-top: 20px;
+        }
+
+        .container-fluid {
+            padding: 0;
+        }
+    </style>
+    <script>
+        var eventSource = null;
+
+        // Function to handle SSE and update the response div
+        function setupSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+            eventSource = new EventSource("/stream");
+
+            eventSource.onmessage = function(event) {
+                var data = JSON.parse(event.data);
+
+                var type = data.type;
+                var content = data.content;
+
+                var dateTime = new Date();
+                var time = dateTime.toLocaleTimeString();
+
+                // Append the message to the response div based on the role
+                if (type === "token") {
+                    $('#response .robot').last().append(content);
+                }
+                else if (type === "error") {
+                    console.log(content);
+                }
+
+                // Scroll to the bottom of the output container
+                var outputContainer = document.getElementById("response");
+                outputContainer.scrollTop = outputContainer.scrollHeight;
+            };
+
+            eventSource.onopen = function(event) {
+                console.log("SSE connection opened.");
+            };
+
+            // Handle errors
+            eventSource.onerror = function(event) {
+                console.error("EventSource failed:", event);
+                eventSource.close();
+            };
+
+            // Close the EventSource when the page is unloaded
+            window.onbeforeunload = function() {
+                console.error("SSE connection closed.");
+                eventSource.close();
+            };
+        }
+
+        // Call the setupSSE function when the page is ready
+        $(document).ready(function() {
+            setupSSE();
+            
+            $('#prompt').keypress(function(event) {
+                if (event.keyCode === 13 && !event.shiftKey) {
+                    event.preventDefault();
+                    $('form').submit();
+                }
+            });
+
+            $('form').on('submit', function(event) {
+                event.preventDefault();
+                // get the CSRF token from the cookie
+                var csrftoken = Cookies.get('csrftoken');
+
+                // set the CSRF token in the AJAX headers
+                $.ajaxSetup({
+                    headers: { 'X-CSRFToken': csrftoken }
+                });
+                // Get the prompt
+                var prompt = $('#prompt').val();
+                var dateTime = new Date();
+                var time = dateTime.toLocaleTimeString();
+
+                // Append the prompt to the response div
+                $('#response').append('<p id="GFG1" class="human">('+ time + ') <i class="bi bi-person"></i>: ' + prompt + '</p>');
+
+                // Clear the prompt
+                $('#prompt').val('');
+                $.ajax({
+                    url: '/',
+                    type: 'POST',
+                    data: {
+                        prompt: prompt,
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        if (data.status === 'success') {
+                            // Append the response to the response div
+                            $('#response').append('<span id="GFG2" class="robot">('+ time + ') <i class="bi bi-robot"></i>: </span>');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="container-fluid p-3">
+        <h3>FlaskGPT</h3>
+        <div class="output-container border" id="response"></div>
+        <div class="input-container">
+            <form method="post" action="">
+                <label for="prompt" class="form-label"><strong>Prompt:</strong></label>
+                <textarea class="form-control" type="textarea" id="prompt" name="prompt" rows="3"></textarea>
+                <button class="btn btn-primary mt-2" type="submit">Submit</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
