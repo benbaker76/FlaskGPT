@@ -171,7 +171,7 @@ def init_llm():
     except Exception as e:
         logging.error(f"LLM failed to initialize : {e}")
 
-#create_vectordb()
+create_vectordb()
 if USE_OPENAI:
     init_openai_llm()
 else:
