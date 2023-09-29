@@ -86,4 +86,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Links
 - [baker76.com](https://baker76.com)
 - [InfoGPT](https://github.com/himanshu662000/InfoGPT)
-- [resume.json](https://jsonresume.org)
+- [jsonresume.org](https://jsonresume.org)
